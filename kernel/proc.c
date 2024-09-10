@@ -693,3 +693,20 @@ procdump(void)
     printf("\n");
   }
 }
+uint64
+sys_getancestor(void)
+{
+    int n;
+    struct proc *p = myproc();
+    argint(0, &n);  // Obtener el argumento
+
+    while (n > 0 && p->parent) {
+        p = p->parent;
+        n--;
+    }
+
+    if (n == 0)
+        return p->pid;  // Retorna el PID del ancestro
+    else
+        return -1;  // No hay tantos ancestros
+}
