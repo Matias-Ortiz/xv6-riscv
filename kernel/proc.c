@@ -125,6 +125,9 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  p->priority = 0; // Inicializar la prioridad en 0
+  p->boost = 1;    // Inicializar el boost en 1
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -448,37 +451,52 @@ scheduler(void)
   struct cpu *c = mycpu();
 
   c->proc = 0;
+
   for(;;){
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting.
+    // Habilitar interrupciones para evitar un deadlock si todos los procesos están esperando.
     intr_on();
 
+    // La variable para indicar si se encontró un proceso ejecutable.
     int found = 0;
+
+    // Iterar sobre la tabla de procesos para encontrar un proceso RUNNABLE con la mayor prioridad.
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
+
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
+        // Se encontró un proceso ejecutable.
+        found = 1;
+
+        // Incrementar la prioridad del proceso usando boost.
+        p->priority += p->boost;
+
+        // Cambiar el boost cuando la prioridad llega a los límites.
+        if(p->priority >= 9) {
+          p->boost = -1;
+        } else if(p->priority <= 0) {
+          p->boost = 1;
+        }
+
+        // Cambiar el estado del proceso a RUNNING.
         p->state = RUNNING;
         c->proc = p;
         swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
+        // El proceso ha terminado de ejecutarse por ahora.
         c->proc = 0;
-        found = 1;
       }
+
       release(&p->lock);
     }
+
+    // Si no se encontró ningún proceso RUNNABLE, el procesador espera una interrupción.
     if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
       intr_on();
       asm volatile("wfi");
     }
   }
 }
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
