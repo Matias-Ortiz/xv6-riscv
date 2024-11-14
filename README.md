@@ -66,4 +66,4 @@ Valor almacenado en la dirección (como ASCII): B
 Valor almacenado en la dirección (como hexadecimal): 0x42
 
 ## Conclusión
-A lo largo de esta tarea, se presentaron varios desafíos, desde problemas de compilación hasta errores en la implementación de las funciones. Sin embargo, gracias a la experiencia adquirida en los intentos previos y un enfoque de depuración cuidadoso, se logró una implementación exitosa de mprotect y munprotect. Esta tarea me permitió entender más a fondo el manejo de memoria en un sistema operativo y la importancia de los permisos de acceso a la memoria para la seguridad y estabilidad del sistema.
+A lo largo de esta tarea, se presentaron varios desafíos, desde problemas de compilación hasta errores en la implementación de las funciones. Sin embargo, gracias a la experiencia adquirida en los intentos previos y un enfoque de depuración cuidadoso, se logró una implementación exitosa de `mprotect` y `munprotect`. Esta tarea me permitió entender más a fondo el manejo de memoria en un sistema operativo y la importancia de los permisos de acceso a la memoria para la seguridad y estabilidad del sistema.
