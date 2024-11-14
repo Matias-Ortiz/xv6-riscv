@@ -1,46 +1,67 @@
-xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
-Version 6 (v6).  xv6 loosely follows the structure and style of v6,
-but is implemented for a modern RISC-V multiprocessor using ANSI C.
+# Informe Tarea 3 - xv6: Protección de Memoria
 
-ACKNOWLEDGMENTS
+**Autor:** Matibe Bandayoren  
+**Curso:** Sistemas Operativos  
+**Tarea:** Tarea 3
 
-xv6 is inspired by John Lions's Commentary on UNIX 6th Edition (Peer
-to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
-2000)).  See also https://pdos.csail.mit.edu/6.1810/, which provides
-pointers to on-line resources for v6.
+## Descripción General
 
-The following people have made contributions: Russ Cox (context switching,
-locking), Cliff Frey (MP), Xiao Yu (MP), Nickolai Zeldovich, and Austin
-Clements.
+La Tarea 3 consistió en implementar las funciones `mprotect` y `munprotect` en xv6, un sistema operativo de enseñanza. La función `mprotect` permite proteger una región de memoria para hacerla de solo lectura, mientras que `munprotect` revierte esta protección, permitiendo nuevamente la escritura en la región de memoria. Estas funciones son fundamentales para entender el manejo de memoria y la protección a nivel de sistema operativo.
 
-We are also grateful for the bug reports and patches contributed by
-Takahiro Aoyagi, Marcelo Arroyo, Silas Boyd-Wickizer, Anton Burtsev,
-carlclone, Ian Chen, Dan Cross, Cody Cutler, Mike CAT, Tej Chajed,
-Asami Doi,Wenyang Duan, eyalz800, Nelson Elhage, Saar Ettinger, Alice
-Ferrazzi, Nathaniel Filardo, flespark, Peter Froehlich, Yakir Goaron,
-Shivam Handa, Matt Harvey, Bryan Henry, jaichenhengjie, Jim Huang,
-Matúš Jókay, John Jolly, Alexander Kapshuk, Anders Kaseorg, kehao95,
-Wolfgang Keller, Jungwoo Kim, Jonathan Kimmitt, Eddie Kohler, Vadim
-Kolontsov, Austin Liew, l0stman, Pavan Maddamsetti, Imbar Marinescu,
-Yandong Mao, Matan Shabtay, Hitoshi Mitake, Carmi Merimovich, Mark
-Morrissey, mtasm, Joel Nider, Hayato Ohhashi, OptimisticSide,
-phosphagos, Harry Porter, Greg Price, RayAndrew, Jude Rich, segfault,
-Ayan Shafqat, Eldar Sehayek, Yongming Shen, Fumiya Shigemitsu, snoire,
-Taojie, Cam Tenny, tyfkda, Warren Toomey, Stephen Tu, Alissa Tung,
-Rafael Ubal, Amane Uehara, Pablo Ventura, Xi Wang, WaheedHafez,
-Keiichi Watanabe, Lucas Wolf, Nicolas Wolovick, wxdao, Grant Wu, x653,
-Jindong Zhang, Icenowy Zheng, ZhUyU1997, and Zou Chang Wei.
+Este informe documenta el proceso de desarrollo, los principales problemas encontrados y las soluciones implementadas para completar exitosamente la tarea.
 
-ERROR REPORTS
+## Proceso de Desarrollo
 
-Please send errors and suggestions to Frans Kaashoek and Robert Morris
-(kaashoek,rtm@mit.edu).  The main purpose of xv6 is as a teaching
-operating system for MIT's 6.1810, so we are more interested in
-simplifications and clarifications than new features.
+### Primer Intento: Reutilización del xv6 de Tareas Anteriores
 
-BUILDING AND RUNNING XV6
+Inicialmente, intenté realizar la tarea utilizando la versión de xv6 que había modificado para las tareas anteriores (de la tarea 0 a la tarea 2). Se realizaron varias iteraciones sobre este código, sin embargo, no lograba que el sistema compilara correctamente ni que las funciones funcionaran como se esperaba.
 
-You will need a RISC-V "newlib" tool chain from
-https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
-riscv64-softmmu.  Once they are installed, and in your shell
-search path, you can run "make qemu".
+### Segundo Intento: Fork desde el Repositorio del Profesor
+
+Decidí entonces hacer un fork del repositorio del profesor, esperando que este código base pudiera ser más compatible o actualizado. Realicé el mismo proceso de implementación en esta nueva versión, pero nuevamente encontré numerosos problemas. Estos errores me llevaron a concluir que quizá era necesario partir desde una versión completamente limpia y sin modificaciones previas.
+
+### Tercer Intento: Fork desde el Repositorio del MIT
+
+Finalmente, hice un fork directamente desde el repositorio oficial de xv6 en el MIT. Al comenzar desde una versión limpia del sistema, fue mucho más fácil implementar las funciones `mprotect` y `munprotect` con menos errores. Este paso fue clave para el éxito de la tarea, ya que con la experiencia acumulada de los intentos anteriores, logré avanzar de manera más ordenada.
+
+## Principales Problemas y Soluciones
+
+### Problemas en el Archivo de Prueba (`test_mprotect.c`)
+
+1. **Paso 2 - Escritura en la Página Protegida:** Durante las pruebas, uno de los problemas más significativos fue en el paso 2 del archivo `test_mprotect.c`, donde intentaba escribir en una página protegida para probar que la función `mprotect` funcionara correctamente. Este paso arrojaba numerosos errores, por lo que decidí comentarlo y, eventualmente, eliminarlo para evitar que interfiriera con el resto de las pruebas.
+
+2. **Errores en los `#include`:** Los primeros errores surgieron debido a la necesidad de especificar las rutas correctas en los `#include`. Fue necesario especificar si los archivos estaban en el espacio de `kernel` o `user`, agregando `kernel/` o `user/` en las rutas. Esto solucionó varios problemas de compilación y permitió que el sistema encontrara los archivos necesarios.
+
+### Problemas en Múltiples Archivos
+
+La implementación de `mprotect` y `munprotect` involucró modificaciones en varios archivos del sistema xv6:
+
+- **`vm.c`**: Aquí se agregó la lógica principal para `mprotect` y `munprotect`, asegurando que las páginas de memoria se protegieran o desprotegieran correctamente. Fue fundamental colocar el código en las secciones adecuadas y verificar la validez de los permisos de las páginas.
+  
+- **`syscall.h`, `syscall.c` y `sysproc.c`**: Estos archivos requerían cambios para registrar las nuevas llamadas al sistema y conectar las funciones con el kernel. Esto incluyó definir las constantes de las nuevas llamadas y sus funciones correspondientes en el kernel.
+
+- **`user.h` y `usys.pl`**: Se declararon las funciones `mprotect` y `munprotect` para hacerlas accesibles desde los programas de usuario.
+
+Cada cambio debía hacerse de forma cuidadosa para evitar errores de compilación. Incluso un pequeño error en uno de estos archivos provocaba fallos en la construcción del sistema.
+
+### Depuración y Validación del Código
+
+Para depurar el código y solucionar problemas de compilación y ejecución, utilicé las siguientes estrategias:
+
+1. **Mensajes de Depuración (`printf`)**: Agregar mensajes de `printf` en puntos clave del código ayudó a rastrear el flujo de ejecución y a verificar el estado de las variables, especialmente para detectar problemas de alineación de direcciones y permisos de páginas.
+   
+2. **Iteración Continua**: Debido a la complejidad de la tarea, fueron necesarias múltiples iteraciones para probar el código, detectar errores y hacer ajustes hasta que el sistema compilara y ejecutara correctamente.
+
+## Resultados Finales
+
+Tras implementar todas las funciones y realizar pruebas exhaustivas, el sistema xv6 fue capaz de:
+
+1. **Aplicar protección de solo lectura** a una región de memoria especificada usando `mprotect`.
+2. **Eliminar la protección de solo lectura** permitiendo la escritura nuevamente con `munprotect`.
+3. Ejecutar exitosamente el programa de prueba `test_mprotect`, mostrando el siguiente resultado en la consola:
+
+```plaintext
+mprotect: protección aplicada con éxito en addr: 4000, len: 1
+Escribiendo en la página desprotegida...
+Valor almacenado en la dirección (como ASCII): B
+Valor almacenado en la dirección (como hexadecimal): 0x42
