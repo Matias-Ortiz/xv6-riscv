@@ -5,6 +5,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -309,6 +310,65 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // physical memory.
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
+
+int 
+mprotect(uint64 addr, int len)
+{
+  struct proc *p = myproc();
+
+  // Verificar que la dirección sea válida y alineada
+  if (addr % PGSIZE != 0 || len <= 0 || addr + len * PGSIZE > p->sz) {
+    printf("mprotect error: dirección no alineada o rango fuera de límites\n");
+    return -1;
+  }
+
+  // Iterar sobre las páginas y cambiar permisos
+  for (int i = 0; i < len; i++) {
+    uint64 page_addr = addr + i * PGSIZE;
+    pte_t *pte = walk(p->pagetable, page_addr, 0);
+
+    // Verificar que la página exista y esté presente
+    if (pte == 0 || (*pte & PTE_V) == 0) {
+      printf("mprotect error: página no encontrada o no presente en %lx\n", page_addr);
+      return -1;
+    }
+
+    // Cambiar permisos a solo lectura
+    *pte &= ~PTE_W;
+  }
+
+  // Mensaje final de éxito
+  printf("mprotect: protección aplicada con éxito en addr: %lx, len: %d\n", addr, len);
+  return 0; // Éxito
+}
+
+int
+munprotect(uint64 addr, int len)
+{
+  struct proc *p = myproc();
+
+  // Verificar que la dirección sea válida y esté alineada.
+  if (addr % PGSIZE != 0 || len <= 0 || addr + len * PGSIZE > p->sz) {
+    return -1; // Dirección no alineada.
+  }
+
+  // Iterar sobre las páginas y cambiar permisos.
+  for (int i = 0; i < len; i++) {
+    uint64 page_addr = addr + i * PGSIZE;
+
+    pte_t *pte = walk(p->pagetable, page_addr, 0);
+    
+    if (pte == 0 || (*pte & PTE_V) == 0) {
+      return -1; // PTE no encontrado o no presente.
+    }
+
+    // Cambiar permisos a lectura y escritura.
+    *pte |= PTE_W;
+  }
+
+  return 0; // Éxito.
+}
+
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {

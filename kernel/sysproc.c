@@ -6,6 +6,9 @@
 #include "spinlock.h"
 #include "proc.h"
 
+int mprotect(uint64 addr, int len);
+int munprotect(uint64 addr, int len);
+
 uint64
 sys_exit(void)
 {
@@ -46,6 +49,28 @@ sys_sbrk(void)
   if(growproc(n) < 0)
     return -1;
   return addr;
+}
+
+uint64 
+sys_mprotect(void) {
+  uint64 addr;
+  int len;
+
+  argaddr(0, &addr);
+  argint(1, &len);
+
+  return mprotect(addr, len);
+}
+
+uint64 
+sys_munprotect(void) {
+  uint64 addr;
+  int len;
+
+  argaddr(0, &addr);
+  argint(1, &len);
+
+  return munprotect(addr, len);
 }
 
 uint64
