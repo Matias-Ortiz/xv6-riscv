@@ -125,7 +125,10 @@ struct dinode {
 ## **4. Resultados**
 
 1. **Compilación Exitosa:** Luego de múltiples iteraciones y ajustes, el sistema compiló correctamente tras un `make clean` y `make`.
-2. **Ejecución Parcial:** La consola de xv6 se ejecuta con `make qemu`, pero sigue mostrando un bucle infinito relacionado con permisos de la consola.
+2. **Ejecución Parcial:** La consola de xv6 se ejecuta con `make qemu`, pero sigue mostrando un bucle infinito relacionado con permisos de la consola. Pero ahora muestra el mensaje:
+```
+filewrite: No tiene permiso de escritura
+```
 
 ---
 
