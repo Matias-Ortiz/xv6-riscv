@@ -37,6 +37,7 @@ struct dinode {
   uint size;            // Size of file (bytes)
   uint addrs[NDIRECT+1];// Data block addresses
   int permissions;      // NUEVO: Permisos (lectura=1, escritura=2, ambos=3, inmutable=5)
+  char padding[BSIZE - ((sizeof(short) * 4 + sizeof(uint) * (NDIRECT+2) + sizeof(int)) % BSIZE)];
 };
 
 // Inodes per block.

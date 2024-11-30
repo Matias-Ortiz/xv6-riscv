@@ -310,73 +310,85 @@ sys_open(void)
   struct inode *ip;
   int n;
 
+  // Obtener los argumentos de la llamada al sistema
   argint(1, &omode);
-  if((n = argstr(0, path, MAXPATH)) < 0)
+  if ((n = argstr(0, path, MAXPATH)) < 0)
     return -1;
 
   begin_op();
 
-  if(omode & O_CREATE){
+  if (omode & O_CREATE) {
+    // Crear un nuevo archivo si se especifica O_CREATE
     ip = create(path, T_FILE, 0, 0);
-    if(ip == 0){
+    if (ip == 0) {
       end_op();
       return -1;
     }
   } else {
-    if((ip = namei(path)) == 0){
+    // Buscar el archivo en el sistema de archivos
+    if ((ip = namei(path)) == 0) {
       end_op();
       return -1;
     }
     ilock(ip);
-    
-     // Validar si el archivo es inmutable
-    if(ip->permissions == PERM_IMMUTABLE) {
-      if(omode != O_RDONLY) { // Solo puede abrirse en modo de solo lectura
-        printf("sys_open: archivo inmutable %s no puede abrirse para escritura\n", path);
-        iunlockput(ip);
-        end_op();
-        return -1;
-      }
-    } else {
-      // Validar permiso de escritura
-      if((omode & O_WRONLY || omode & O_RDWR) && !(ip->permissions & 2)){
-        printf("sys_open: permiso denegado para escribir en %s\n", path);
-        iunlockput(ip);
-        end_op();
-        return -1;
-      }
 
-      // Validar permiso de lectura
-      if((omode & O_RDONLY) && !(ip->permissions & 1)){
-        printf("sys_open: permiso denegado para leer %s\n", path);
-        iunlockput(ip);
-        end_op();
-        return -1;
+    // Excluir la consola de las validaciones de permisos
+    if (namecmp(path, "console") == 0) {
+      omode = O_RDWR; // Asignar lectura y escritura por defecto
+    } else {
+      // Validar si el archivo es inmutable
+      if (ip->permissions == PERM_IMMUTABLE) {
+        if (omode != O_RDONLY) { // Solo puede abrirse en modo de solo lectura
+          printf("sys_open: archivo inmutable %s no puede abrirse para escritura\n", path);
+          iunlockput(ip);
+          end_op();
+          return -1;
+        }
+      } else {
+        // Validar permiso de escritura
+        if ((omode & O_WRONLY || omode & O_RDWR) && !(ip->permissions & 2)) {
+          printf("sys_open: permiso denegado para escribir en %s\n", path);
+          iunlockput(ip);
+          end_op();
+          return -1;
+        }
+
+        // Validar permiso de lectura
+        if ((omode & O_RDONLY) && !(ip->permissions & 1)) {
+          printf("sys_open: permiso denegado para leer %s\n", path);
+          iunlockput(ip);
+          end_op();
+          return -1;
+        }
       }
     }
 
-    if(ip->type == T_DIR && omode != O_RDONLY){
+    // Validar que los directorios solo se abran en modo de lectura
+    if (ip->type == T_DIR && omode != O_RDONLY) {
       iunlockput(ip);
       end_op();
       return -1;
     }
   }
 
-  if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
+  // Validar el tipo de dispositivo
+  if (ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)) {
     iunlockput(ip);
     end_op();
     return -1;
   }
 
-  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
-    if(f)
+  // Asignar un descriptor de archivo
+  if ((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0) {
+    if (f)
       fileclose(f);
     iunlockput(ip);
     end_op();
     return -1;
   }
 
-  if(ip->type == T_DEVICE){
+  // Configurar el archivo
+  if (ip->type == T_DEVICE) {
     f->type = FD_DEVICE;
     f->major = ip->major;
   } else {
@@ -387,7 +399,8 @@ sys_open(void)
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
 
-  if((omode & O_TRUNC) && ip->type == T_FILE){
+  // Truncar el archivo si se especifica O_TRUNC y es un archivo regular
+  if ((omode & O_TRUNC) && ip->type == T_FILE) {
     itrunc(ip);
   }
 
@@ -396,6 +409,9 @@ sys_open(void)
 
   return fd;
 }
+
+
+
 
 uint64
 sys_mkdir(void)
@@ -538,7 +554,7 @@ sys_chmod(void) {
   struct inode *ip;
 
   // Validar argumentos
-  if (argstr(0, path, MAXPATH) < 0 || argint(1, &mode) < 0 || mode < 0)
+  if (argstr(0, path, MAXPATH) < 0 || argint(1, &mode) != 0 || mode < 0)
     return -1;
 
   begin_op();
