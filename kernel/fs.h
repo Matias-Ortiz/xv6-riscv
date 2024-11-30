@@ -35,7 +35,8 @@ struct dinode {
   short minor;          // Minor device number (T_DEVICE only)
   short nlink;          // Number of links to inode in file system
   uint size;            // Size of file (bytes)
-  uint addrs[NDIRECT+1];   // Data block addresses
+  uint addrs[NDIRECT+1];// Data block addresses
+  int permissions;      // NUEVO: Permisos (lectura=1, escritura=2, ambos=3, inmutable=5)
 };
 
 // Inodes per block.
@@ -58,3 +59,8 @@ struct dirent {
   char name[DIRSIZ];
 };
 
+// Definición de constantes para permisos
+#define PERM_READ 1       // Permiso de lectura
+#define PERM_WRITE 2      // Permiso de escritura
+#define PERM_RDWR 3       // Permiso de lectura/escritura
+#define PERM_IMMUTABLE 5  // Permiso inmutable

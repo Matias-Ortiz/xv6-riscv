@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_mprotect 22
 #define SYS_munprotect 23
+#define SYS_chmod 24

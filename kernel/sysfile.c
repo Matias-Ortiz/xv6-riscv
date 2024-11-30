@@ -328,6 +328,33 @@ sys_open(void)
       return -1;
     }
     ilock(ip);
+    
+     // Validar si el archivo es inmutable
+    if(ip->permissions == PERM_IMMUTABLE) {
+      if(omode != O_RDONLY) { // Solo puede abrirse en modo de solo lectura
+        printf("sys_open: archivo inmutable %s no puede abrirse para escritura\n", path);
+        iunlockput(ip);
+        end_op();
+        return -1;
+      }
+    } else {
+      // Validar permiso de escritura
+      if((omode & O_WRONLY || omode & O_RDWR) && !(ip->permissions & 2)){
+        printf("sys_open: permiso denegado para escribir en %s\n", path);
+        iunlockput(ip);
+        end_op();
+        return -1;
+      }
+
+      // Validar permiso de lectura
+      if((omode & O_RDONLY) && !(ip->permissions & 1)){
+        printf("sys_open: permiso denegado para leer %s\n", path);
+        iunlockput(ip);
+        end_op();
+        return -1;
+      }
+    }
+
     if(ip->type == T_DIR && omode != O_RDONLY){
       iunlockput(ip);
       end_op();
@@ -503,3 +530,40 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_chmod(void) {
+  char path[MAXPATH];
+  int mode;
+  struct inode *ip;
+
+  // Validar argumentos
+  if (argstr(0, path, MAXPATH) < 0 || argint(1, &mode) < 0 || mode < 0)
+    return -1;
+
+  begin_op();
+
+  // Obtener inode
+  if ((ip = namei(path)) == 0) {
+    end_op();
+    return -1; 
+  }
+
+  ilock(ip);
+
+  // Validar si el archivo es inmutable
+  if (ip->permissions == PERM_IMMUTABLE) {
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+
+  // Cambiar permisos
+  ip->permissions = mode;
+  iupdate(ip);
+  iunlockput(ip);
+  end_op();
+
+  return 0;
+}
+

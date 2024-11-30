@@ -111,6 +111,12 @@ fileread(struct file *f, uint64 addr, int n)
   if(f->readable == 0)
     return -1;
 
+  // NUEVO: Validar permisos de lectura
+  if((f->ip->permissions & PERM_READ) == 0) {
+    printf("fileread: No tiene permiso de lectura\n");
+    return -1; // No tiene permiso de lectura
+  }
+
   if(f->type == FD_PIPE){
     r = piperead(f->pipe, addr, n);
   } else if(f->type == FD_DEVICE){
@@ -138,6 +144,12 @@ filewrite(struct file *f, uint64 addr, int n)
 
   if(f->writable == 0)
     return -1;
+
+  // NUEVO: Validar permisos de escritura
+  if((f->ip->permissions & PERM_WRITE) == 0) {
+    printf("filewrite: No tiene permiso de escritura\n");
+    return -1; // No tiene permiso de escritura
+  }
 
   if(f->type == FD_PIPE){
     ret = pipewrite(f->pipe, addr, n);
